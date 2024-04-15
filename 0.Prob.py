@@ -74,7 +74,7 @@ def get_resolver_time(query_message, dns_resolver):
 
 
 if __name__ == "__main__":
-    target_resolver = "223.5.5.5"
+    target_resolver = "8.8.8.8"
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
      
     # 发送不设置RD标识的查询
@@ -113,6 +113,7 @@ if __name__ == "__main__":
         print(color.CYAN,"[+++++]{获取结果:%s}{遇到错误:%s}{耗时:%f秒}" % (anser, error, request_duration), color.END)
 
     #判断标准是权威无响应情况下的耗时 与 有响应耗时 之间的差距，为防止网络波动带来的影响，阈值设为了1.3
+    print(color.YELLOW,"[+]负缓存测量耗时中位数:", np.median(tims_use), "秒",color.END)
     if np.median(tims_use) >= (1.3 * base_duration):
         nage_cache_test = False
         print(color.RED,"[+++++]负缓存不完整",color.END)

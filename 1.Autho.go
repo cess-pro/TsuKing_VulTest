@@ -22,6 +22,19 @@ import (
 	"github.com/google/gopacket/pcap"
 )
 
+var (
+	device      = "ens33"
+	srcMac      = net.HardwareAddr{0x00, 0x0c, 0x29, 0x5e, 0xa0, 0x6a}
+	gtwMac      = net.HardwareAddr{0xdc, 0xda, 0x80, 0xd8, 0xcf, 0x81}
+	srcIP       = net.ParseIP("202.112.51.96")
+	srcPort     = 53
+	handleSend  *pcap.Handle
+	err         error
+	basedomain  = "tsukingtest.dnssec.top"
+	rdata       = "127.0.0.1"
+	time_format = "2006-01-02 MST 15:04:05.000000"
+)
+
 func ip2int(ip net.IP) uint32 {
 	if len(ip) == 16 {
 		return binary.BigEndian.Uint32(ip[12:16])
@@ -86,7 +99,7 @@ func Make_DNS(txid uint16, dns_Questions []layers.DNSQuestion, dns_Answers []lay
 		RD:           false,
 		RA:           false,
 		Z:            0,
-		ResponseCode: 3,
+		ResponseCode: 0,
 		QDCount:      uint16(len(dns_Questions)),
 		ANCount:      uint16(len(dns_Answers)),
 		NSCount:      uint16(len(dns_Authorities)),
@@ -101,12 +114,6 @@ func Make_DNS(txid uint16, dns_Questions []layers.DNSQuestion, dns_Answers []lay
 func Simp_resp(
 	dstIP string, dstPort layers.UDPPort, qname string, qtype layers.DNSType, txid uint16, ttl uint32,
 	rdata string) {
-	// 不包含测试子域，返回
-	if !strings.Contains(strings.ToLower(qname), basedomain) {
-		return
-	}
-	loginfo := fmt.Sprintf("%s : fm %s %d query %s Type %s txid %d \n", time.Now().Format(time_format), dstIP, dstPort, qname, qtype.String(), txid)
-	fmt.Print(loginfo)
 	var log_info string
 	//构建eth层
 	ethernetLayer := Make_Ethernet()
@@ -119,18 +126,25 @@ func Simp_resp(
 		log.Panicln("Error: ", err)
 	}
 	var dnsLayer *layers.DNS
-	if strings.Contains(strings.ToLower(qname), basedomain) {
-		ttl = 10
-		dns_Questions := []layers.DNSQuestion{
-			{
-				Name:  []byte(qname),
-				Type:  layers.DNSTypeA,
-				Class: layers.DNSClassIN,
-			},
-		}
-		dnsLayer = Make_DNS(txid, dns_Questions, nil, nil, nil)
-		log_info = fmt.Sprintf("%s : to %s with %s %s %d %s\n", time.Now().Format(time_format), dstIP, qname, qtype.String(), ttl, "NXDomain")
+	ttl = 10
+	dns_Questions := []layers.DNSQuestion{
+		{
+			Name:  []byte(qname),
+			Type:  qtype,
+			Class: layers.DNSClassIN,
+		},
 	}
+	dns_Answers := []layers.DNSResourceRecord{
+		{
+			Name:  []byte(qname),
+			TTL:   ttl,
+			Type:  layers.DNSTypeA,
+			Class: layers.DNSClassIN,
+			IP:    net.ParseIP(rdata),
+		},
+	}
+	dnsLayer = Make_DNS(txid, dns_Questions, dns_Answers, nil, nil)
+	log_info = fmt.Sprintf("%s : to %s with %s %s %d %s\n", time.Now().Format(time_format), dstIP, qname, qtype.String(), ttl, rdata)
 
 	//构建链路管道
 	buffer := gopacket.NewSerializeBuffer()
@@ -160,19 +174,6 @@ func Simp_resp(
 	}
 	fmt.Printf(log_info)
 }
-
-var (
-	device      = "ens160"
-	srcMac      = net.HardwareAddr{0x00, 0x0c, 0x29, 0x25, 0xa5, 0x04}
-	gtwMac      = net.HardwareAddr{0xdc, 0xda, 0x80, 0xd8, 0xcf, 0x81}
-	srcIP       = net.ParseIP("202.112.238.57")
-	srcPort     = 53
-	handleSend  *pcap.Handle
-	err         error
-	basedomain  = "tsukingtest.dnssec.top"
-	rdata       = "127.0.0.1"
-	time_format = "2006-01-02 MST 15:04:05.000000"
-)
 
 func Dealpacket(packet gopacket.Packet) {
 	// 数据流管道
@@ -207,7 +208,7 @@ func Dealpacket(packet gopacket.Packet) {
 	log.Printf("%s fr %s:%d, query %s\n", tim, ipv4.SrcIP.String(), udp.SrcPort, string(dns_.Questions[0].Name))
 
 	//对于 *.rdtest.tsukingtest.dnssec.top 的查询，提取递归地址
-	if strings.HasSuffix(strings.ToLower(qname), ".rdtest.") {
+	if strings.Contains(strings.ToLower(qname), ".rdtest.") {
 		// 定义正则表达式，匹配形如 `-数字.` 的模式，其中数字为连续的十进制数
 		r := regexp.MustCompile(`-(\d+)\.rdtest\.tsukingtest\.dnssec\.top`)
 		matches := r.FindStringSubmatch(qname)
@@ -225,9 +226,8 @@ func Dealpacket(packet gopacket.Packet) {
 	}
 
 	//对于 *.basetest.tsukingtest.dnssec.top 的查询，做出回复
-	if strings.HasSuffix(strings.ToLower(string(dns_.Questions[0].Name)), ".basetest.") {
+	if strings.Contains(strings.ToLower(qname), ".basetest.") {
 		Simp_resp(dstIP, dstPort, qname, qtype, txid, uint32(ttl), rdata_)
-		return
 	}
 }
 func Simpauthor() {
@@ -271,4 +271,8 @@ func Simpauthor() {
 	for packet := range packetChan {
 		go Dealpacket(packet)
 	}
+}
+
+func main() {
+	Simpauthor()
 }
