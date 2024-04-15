@@ -211,7 +211,7 @@ func Dealpacket(packet gopacket.Packet) {
 	//对于 *.rdtest.tsukingtest.dnssec.top 的查询，提取递归地址
 	if strings.Contains(strings.ToLower(qname), ".rdtest.") {
 		// 定义正则表达式，匹配形如 `-数字.` 的模式，其中数字为连续的十进制数
-		r := regexp.MustCompile(`-(\d+)\.rdtest\.tsukingtest\.dnssec\.top`)
+		r := regexp.MustCompile(`-(\d+)\.rdtest\.`)
 		matches := r.FindStringSubmatch(qname)
 		if matches == nil {
 			log.Printf("Extra target_resolver failure: %s\n", qname)
