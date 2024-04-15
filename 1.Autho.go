@@ -214,7 +214,7 @@ func Dealpacket(packet gopacket.Packet) {
 		r := regexp.MustCompile(`-(\d+)\.rdtest\.tsukingtest\.dnssec\.top`)
 		matches := r.FindStringSubmatch(qname)
 		if matches == nil {
-			log.Println("Extra target_resolver failure: %s", qname)
+			log.Printf("Extra target_resolver failure: %s\n", qname)
 			return
 		}
 		vul_resolver_int_string := matches[1]
