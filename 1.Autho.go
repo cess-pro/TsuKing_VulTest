@@ -123,7 +123,8 @@ func Simp_resp(
 	udpLayer := Make_UDP(dstPort)
 	err := udpLayer.SetNetworkLayerForChecksum(ipv4Layer)
 	if err != nil {
-		log.Panicln("Error: ", err)
+		log.Println("Error: ", err)
+		return
 	}
 	var dnsLayer *layers.DNS
 	ttl = 10
@@ -213,7 +214,7 @@ func Dealpacket(packet gopacket.Packet) {
 		r := regexp.MustCompile(`-(\d+)\.rdtest\.tsukingtest\.dnssec\.top`)
 		matches := r.FindStringSubmatch(qname)
 		if matches == nil {
-			log.Panicln("Extra target_resolver failure: %s", qname)
+			log.Println("Extra target_resolver failure: %s", qname)
 			return
 		}
 		vul_resolver_int_string := matches[1]
