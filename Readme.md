@@ -23,7 +23,7 @@
 
 ## 负缓存
 
-- 方案一：基础判断是否对ServerFailure、timeout进行缓存；
+- 方案一(目前方案)：基础判断是否对ServerFailure、timeout进行缓存；
 
     能有缓解，不能阻断攻击
 
