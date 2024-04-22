@@ -10,7 +10,15 @@
 
     本地通过连续请求的耗时判断是否有负缓存
 
+    程序输入：
+        `The file of target IPs` : 需要测试的解析器列表文本文件（最好提供完整路径），每行一个，IPv4 Only
 
+        `Base domain`：测试用域名的基础域名：e.g. Base domain为`tsukingtest.dnssec.top`，程序会生成测试用域名分别为：xxx-xxx.rdtest.tsukingtest.dnssec.top; xxx-xxx.basetest.tsukingtest.dnssec.top; xxx-xxx.negtest.tsukingtest.dnssec.top
+
+使用如下命令生成可执行文件（dist目录下）：
+```
+pyinstaller --onefile --clean 0.Prob.py
+```
 
 
 

@@ -72,26 +72,26 @@ def get_resolver_time(query_message, dns_resolver):
         request_duration = end_time - start_time
         return(None, f"DNS查询过程中发生错误：{e}", request_duration)
 
-
-if __name__ == "__main__":
-    target_resolver = "110.42.155.152"
+def tsukingprob(tardns, base_domain):
+    target_resolver = tardns
+    print(color.YELLOW,"\n[+]开始测试%s"%target_resolver,color.END)
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
      
     # 发送不设置RD标识的查询
-    req = raw(DNS(id=RandShort(), rd=0, qd=DNSQR(qname="%s-%s.rdtest.tsukingtest.dnssec.top"%(generate_random_string(5),ip2int(target_resolver)), qtype="A")))
+    req = raw(DNS(id=RandShort(), rd=0, qd=DNSQR(qname="%s-%s.rdtest.%s"%(generate_random_string(5),ip2int(target_resolver),base_domain), qtype="A")))
     s.sendto(req, (target_resolver, 53))
     
     # 进行基准耗时测试
     print(color.YELLOW,"[+]获取基准耗时...",color.END)
     base_duration = 0
     tmp_timeuse = []
-    target_domain = generate_random_string(5)+"-"+ip2int(target_resolver)+".basetest.tsukingtest.dnssec.top"
+    target_domain = generate_random_string(5)+"-"+ip2int(target_resolver)+".basetest.%s" % base_domain
     query_message = dns.message.make_query(target_domain, 'A', want_dnssec=False)
     anser, error, request_duration = get_resolver_time(query_message, target_resolver)
     print(color.CYAN,"[+++++]{获取结果:%s}{遇到错误:%s}{耗时:%f秒}" % (anser, error, request_duration), color.END)
     if error:
         print(color.YELLOW,"[+++++]获取基准耗时失败，退出测试，请确认所测试解析器可用",color.END)
-        exit(1)
+        return
     # 进行多次查询以确定基准耗时
     for i in range(5): 
         query_message = dns.message.make_query(target_domain, 'A', want_dnssec=False)
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     print(color.YELLOW,"[+]开始测试负缓存...",color.END)
     nage_cache_test = True
     tims_use = []
-    target_domain = generate_random_string(5)+"-"+ip2int(target_resolver)+"negtest.tsukingtest.dnssec.top"
+    target_domain = generate_random_string(5)+"-"+ip2int(target_resolver)+"negtest.%s" % base_domain
     for i in range(10):
         query_message = dns.message.make_query(target_domain, 'A', want_dnssec=False)
         anser, error, request_duration = get_resolver_time(query_message, target_resolver)
@@ -119,3 +119,11 @@ if __name__ == "__main__":
         print(color.RED,"[+++++]负缓存不完整",color.END)
     else:
         print(color.GREEN,"[+++++]负缓存完整",color.END)
+if __name__ == "__main__":
+    tarfile = input("The file of target IPs: ")
+    base_domain = input("Base domain: ")
+    # tsukingtest.dnssec.top
+    with open(tarfile, "r") as inf:
+        for tardns in inf.readlines():
+            tardns = tardns.strip()
+            tsukingprob(tardns, base_domain)
